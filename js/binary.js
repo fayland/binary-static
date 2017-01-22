@@ -86621,7 +86621,7 @@
 	    };
 
 	    var add = function add(connection_token) {
-	        BinarySocket.send({ connection_add: 1, connection_token: connection_token });
+	        BinarySocket.send({ connect_add: 1, connection_token: connection_token });
 	    };
 
 	    var del = function del(provider) {
