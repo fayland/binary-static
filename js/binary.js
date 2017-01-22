@@ -86455,6 +86455,7 @@
 
 	var ConnectionsUI = __webpack_require__(587).ConnectionsUI;
 	var ConnectionsData = __webpack_require__(588).ConnectionsData;
+	var url = __webpack_require__(306).url;
 
 	var Connections = function () {
 	    'use strict';
@@ -86463,8 +86464,11 @@
 	        if (response.error && response.error.message) {
 	            return ConnectionsUI.displayError(response.error.message);
 	        }
-	        var apps = response.oauth_apps.map(ConnectionsData.parse);
-	        return ConnectionsUI.update(apps);
+	        if (response.connection_add) {
+	            // call list on finish
+	            return ConnectionsData.list();
+	        }
+	        return ConnectionsUI.update(response.connect_list);
 	    };
 
 	    var init = function init() {
@@ -86472,7 +86476,12 @@
 	        BinarySocket.init({
 	            onmessage: ConnectionsData.calls(responseHandler)
 	        });
-	        ConnectionsData.list();
+	        var connection_token = url.param('connection_token');
+	        if (typeof connection_token !== 'undefined') {
+	            ConnectionsData.add(connection_token);
+	        } else {
+	            ConnectionsData.list();
+	        }
 	    };
 
 	    var clean = function clean() {
@@ -86507,22 +86516,21 @@
 
 	    var containerSelector = '#connections-ws-container';
 	    var messages = {
-	        no_apps: 'You do not have any connection.'
+	        no_connect_list: 'You do not have any connection.'
 	    };
 	    var flexTable = void 0;
 
-	    var formatApp = function formatApp(app) {
-	        var last_used = app.last_used ? app.last_used.format('YYYY-MM-DD HH:mm:ss') : localize('Never');
-	        return [app.name, app.scopes.join(', '), last_used, ''];
+	    var formatConnect = function formatConnect(connect) {
+	        return [connect.provider, ''];
 	    };
 
-	    var createDelButton = function createDelButton(container, app) {
+	    var createDelButton = function createDelButton(container, connect) {
 	        var $buttonSpan = Button.createBinaryStyledButton();
 	        var $button = $buttonSpan.children('.button').first();
 	        $button.text('Delete Connection');
 	        $button.on('click', function () {
-	            if (window.confirm("Confirm: '" + app.name + "'?")) {
-	                ConnectionsData.del(app.provider);
+	            if (window.confirm("Confirm: '" + connect.provider + "'?")) {
+	                ConnectionsData.del(connect.provider);
 	                container.css({ opacity: 0.5 });
 	            }
 	        });
@@ -86533,8 +86541,8 @@
 	        if (flexTable) {
 	            return flexTable.replace(data);
 	        }
-	        var headers = ['Name', 'Permissions', 'Last Used', 'Action'];
-	        var columns = ['name', 'permissions', 'last_used', 'action'];
+	        var headers = ['Provider', 'Action'];
+	        var columns = ['provider', 'action'];
 	        flexTable = new FlexTableUI({
 	            container: containerSelector,
 	            header: headers.map(function (s) {
@@ -86543,19 +86551,19 @@
 	            id: 'connections-table',
 	            cols: columns,
 	            data: data,
-	            style: function style($row, app) {
-	                $row.children('.action').first().append(createDelButton($row, app));
+	            style: function style($row, connect) {
+	                $row.children('.action').first().append(createDelButton($row, connect));
 	            },
-	            formatter: formatApp
+	            formatter: formatConnect
 	        });
 	        return showLocalTimeOnHover('td.last_used');
 	    };
 
-	    var update = function update(apps) {
+	    var update = function update(connect_list) {
 	        $('#loading').remove();
-	        createTable(apps);
-	        if (!apps.length) {
-	            flexTable.displayError(localize(messages.no_apps), 7);
+	        createTable(connect_list);
+	        if (!connect_list.length) {
+	            flexTable.displayError(localize(messages.no_connect_list), 7);
 	        }
 	    };
 
@@ -86591,11 +86599,9 @@
 
 /***/ },
 /* 588 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
 	'use strict';
-
-	var moment = __webpack_require__(308);
 
 	var ConnectionsData = function () {
 	    'use strict';
@@ -86614,24 +86620,18 @@
 	        BinarySocket.send({ connect_list: 1 });
 	    };
 
+	    var add = function add(connection_token) {
+	        BinarySocket.send({ connection_add: 1, connection_token: connection_token });
+	    };
+
 	    var del = function del(provider) {
 	        if (!provider) return;
 	        BinarySocket.send({ connect_del: 1, provider: provider });
 	    };
 
-	    var parse = function parse(app) {
-	        var last = app.last_used ? moment.utc(app.last_used) : null;
-	        return {
-	            name: app.name,
-	            scopes: app.scopes,
-	            last_used: last,
-	            id: app.app_id
-	        };
-	    };
-
 	    return {
-	        parse: parse,
 	        calls: calls,
+	        add: add,
 	        del: del,
 	        list: list
 	    };
