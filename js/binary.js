@@ -86464,7 +86464,7 @@
 	        if (response.error && response.error.message) {
 	            return ConnectionsUI.displayError(response.error.message);
 	        }
-	        if (response.connection_add) {
+	        if (response.connect_add) {
 	            // call list on finish
 	            return ConnectionsData.list();
 	        }
@@ -86521,7 +86521,7 @@
 	    var flexTable = void 0;
 
 	    var formatConnect = function formatConnect(connect) {
-	        return [connect.provider, ''];
+	        return [connect, ''];
 	    };
 
 	    var createDelButton = function createDelButton(container, connect) {
@@ -86529,8 +86529,8 @@
 	        var $button = $buttonSpan.children('.button').first();
 	        $button.text('Delete Connection');
 	        $button.on('click', function () {
-	            if (window.confirm("Confirm: '" + connect.provider + "'?")) {
-	                ConnectionsData.del(connect.provider);
+	            if (window.confirm("Confirm: '" + connect + "'?")) {
+	                ConnectionsData.del(connect);
 	                container.css({ opacity: 0.5 });
 	            }
 	        });
